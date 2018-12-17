@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<!-- DATW ASSIGNMENT 2 AP820 - AARON POWELL -->
+<html>
+  <head>
+    <title>Canterbury Business Ratings</title>
+    <meta charset="utf-8" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.1/jquery.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css"
+    />
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+
+    <style>
+      #businessTable {
+        width: 100%;
+        text-align: center;
+        font-family: Arial, sans-serif;
+        border-collapse: collapse;
+        background-color: rgb(255, 255, 96);
+        margin-top: 0;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid rgb(0, 3, 155);
+        padding: 0.5em;
+        margin-top: 0;
+      }
+
+      th {
+        background-color: #4291bf;
+        color: rgb(255, 255, 255);
+      }
+
+      p {
+        font-family: Arial, sans-serif;
+        text-align: center;
+      }
+
+      .page {
+        background-color: rgb(66, 145, 191);
+        color: white;
+        margin-right: 1px;
+        height: 30px;
+        width: 30px;
+        margin-bottom: 5px;
+      }
+
+      .page:hover {
+        background-color: white;
+        color: black;
+        cursor: pointer;
+        margin-bottom: 0px;
+        height: 35px;
+        width: 35px;
+      }
+
+      .rating,
+      #search {
+        background-color: rgb(66, 145, 191);
+        color: white;
+        padding: auto;
+      }
+
+      .rating:hover,
+      #search:hover {
+        background-color: white;
+        color: black;
+        cursor: pointer;
+        padding: 3.5em auto;
+      }
+
+      #popup {
+        background-color: black;
+        color: white;
+        text-align: center;
+        font-size: 30px;
+      }
+
+      .ui-widget-header {
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background-image: linear-gradient(
+          to bottom right,
+          rgb(66, 145, 191),
+          rgb(66, 145, 191)
+        );
+      }
+
+      #paginator {
+        margin: 1em 1em 0em 1em;
+        text-align: center;
+      }
+
+      .search-container {
+        text-align: center;
+        font-family: Arial, sans-serif;
+        background-color: #4291bf;
+        color: white;
+      }
+
+      .search-container input {
+        width: 25%;
+        height: 25px;
+      }
+
+      p {
+        color: black;
+        border: 1px solid black;
+        padding: 0.3em;
+      }
+    </style>
+
+    <script>
+      var pageData;
+      $(document).ready(function() {
+        // Inserts the default set of restaurant data into the table.
+        $.getJSON(
+          "https://www.cs.kent.ac.uk/people/staff/sm951/co539/assessment2/hygiene.php?",
+          { operation: "get", page: 1 },
+          function(data, status) {
+            populateTable(data);
+          }
+        );
+
+        /* clears table data
+         * populates new table.
+         */
+        function populateTable(data) {
+          $("#businessTable tbody").remove();
+          var i = 0;
+          $.each(data, function(k, col) {
+            pageData = data;
+            var $row = $("<tr>").append(
+              $("<td>").text(col.name),
+              $("<td>").text(col.addressLine),
+              $("<td>").text(col.hygieneRating),
+              $("<td>").text(col.ratingDate),
+              $("<td>").append(
+                '<button class="rating" value="' + i + '">Get Rating</button>'
+              )
+            );
+            $row.appendTo("#businessTable");
+            i++;
+          });
+        }
+
+        // sets source with tags for autocomplete. When focused show previous tags.
+        var tags = [
+          "Ship And Trades",
+          "The Hollywood Bowl",
+          "Anchor Seafry",
+          "Fresh"
+        ];
+        $("#name")
+          .autocomplete({
+            source: tags,
+            minLength: 0,
+            position: { my: "left bottom", at: "left top" }
+          })
+          .bind("focus", function() {
+            $(this).autocomplete("search");
+          });
+
+        /*
+         * Creates a button for each number of pages
+         */
+        $.getJSON(
+          "https://www.cs.kent.ac.uk/people/staff/sm951/co539/assessment2/hygiene.php?",
+          { operation: "pages" },
+          function(data) {
+            for (var i = 1; i <= data.pages; i++) {
+              $("#paginator").append(
+                "<button class='page' value='" + i + "'>" + i + "</button>"
+              );
+            }
+          }
+        );
+
+        /* gets the page requested based on the value of the button which the user has interacted with and inserts to the table
+         */
+        $("#paginator").on("click", ".page", function() {
+          var $pageNo = $(this).val();
+          $.getJSON(
+            "https://www.cs.kent.ac.uk/people/staff/sm951/co539/assessment2/hygiene.php?",
+            { operation: "get", page: $pageNo },
+            function(data) {
+              populateTable(data);
+            }
+          );
+        });
+
+        /* Rating from php file for the business is displayed in an alert box, if not found alert will inform the user. To validate data 
+      address is split to search for postcode and displays the rating.
+       */
+        $("#businessTable").on("click", ".rating", function() {
+          getRating($(this).val());
+        });
+        function getRating(index) {
+          console.log(index);
+          $.get(
+            "https://www.cs.kent.ac.uk/people/staff/sm951/co539/assessment2/rating.php?name=" +
+              pageData[index].name,
+            function(data) {
+              if (data.length == 0) {
+                alert("Sorry there are no ratings");
+                return;
+              }
+
+              if (data.length == 1) {
+                alert(pageData[index].name + " Rating: " + data[0].rating);
+                return;
+              }
+
+              var returnData;
+              var flag = true;
+
+              for (var tempData of data) {
+                flag = true;
+                var nameSplit = null;
+                var tempNameWords = null;
+                //The name of the select element split into words
+                var nameSplit = pageData[index].name.split(" ");
+                //The name of the tempData split into words
+                var tempNameWords = tempData.name.replace(/\,/g, "").split(" ");
+                //The address of the select element split into words
+                var addressSplit = pageData[index].addressLine.split(",");
+                var addressSplit = addressSplit[addressSplit.length - 1].trim();
+
+                //Splitting location id to check
+                var tempAddressWords = tempData.locationId.split(",");
+
+                var tempAddressWords = tempAddressWords[
+                  tempAddressWords.length - 2
+                ].split(" ");
+                var tempAddressWords =
+                  tempAddressWords[2] + " " + tempAddressWords[3];
+
+                //Checks if the words in the name match
+                for (var i = 0; i < nameSplit.length; i++) {
+                  if (nameSplit[i] !== tempNameWords[i]) {
+                    flag = false;
+                  }
+                }
+                if (addressSplit !== tempAddressWords) {
+                  flag = false;
+                }
+                //If true then set the result
+                if (flag == true) {
+                  returnData = tempData.rating;
+                  break;
+                }
+              }
+              alert(pageData[index].name + " Rating: " + returnData);
+            },
+            "json"
+          );
+        }
+        /* Searches for businesses with the search input, inserts into table and adds the business name to tags autocomplete if it is not already there*/
+        $("#search").on("click", function() {
+          var searchText = $("#name").val();
+          $.getJSON(
+            "https://www.cs.kent.ac.uk/people/staff/sm951/co539/assessment2/hygiene.php?",
+            { operation: "search", name: searchText },
+            function(data) {
+              pageData = data;
+              $.each(data, function(k, col) {
+                if (tags.indexOf(col.name) == -1) tags.push(col.name);
+              });
+              populateTable(data);
+            }
+          );
+        });
+      });
+    </script>
+  </head>
+
+  <body>
+    <!-- Header using jQuery UI -->
+    <div class="ui-widget-header"><h1 id="title">FOOD HYGIENE RATINGS</h1></div>
+
+    <!-- Page explanation -->
+    <p>
+      A Food Hygiene Ratings webpage accessing resturant information such as:
+      Hygiene Ratings, Location, Hygiene Ratings, and Customer Ratings wherever
+      possible. The database only consists of businesses from the
+      medway/canterbury area. <br />
+      Use the search bar at the bottom to search for a specific business, if
+      there are many businesses, please use the paginator to display the next
+      page.
+    </p>
+
+    <!-- Paginator that will hold the buttons for pages -->
+    <div id="paginator"></div>
+
+    <!-- table to hold the data pulled from get requests -->
+    <table id="businessTable">
+      <thead>
+        <tr>
+          <th>BUSINESS</th>
+          <th>ADDRESS</th>
+          <th>HYGIENE RATING</th>
+          <th>HYGIENE EVALUATED</th>
+          <th>CUSTOMER RATING</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <!-- Search for a business -->
+    <div class="search-container">
+      <label>Business: </label> <input type="text" id="name" required />
+      <button id="search">Search</button>
+    </div>
+  </body>
+</html>
