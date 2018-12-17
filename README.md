@@ -1,1 +1,1 @@
-"# Ajax-Food-Hygiene-Ratings" 
+As an assignment I had to retrieve information with ajax and use JQuery to present the data with autocomplete search and buttons to obtain the customer rating. This all needed to be in one document hence why CSS,JS, and HTML are all in one document.
